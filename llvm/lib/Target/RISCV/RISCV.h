@@ -95,6 +95,12 @@ void initializeRISCVO0PreLegalizerCombinerPass(PassRegistry &);
 
 FunctionPass *createRISCVPreLegalizerCombiner();
 void initializeRISCVPreLegalizerCombinerPass(PassRegistry &);
+
+FunctionPass *createRISCVCompressJumpTablesPass();  // pass function for CopmpressJumpTables
+void initializeRISCVCompressJumpTablesPass(PassRegistry&); 
+// Initializes the pass created by the function `createRISCVCompressJumpTablesPass()`.
+// This is necessary to register the pass in the pass registry so that LLVM knows how to use it
+
 } // namespace llvm
 
 #endif

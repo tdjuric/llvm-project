@@ -44,6 +44,7 @@
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
 #include <optional>
+#include <iostream>
 
 using namespace llvm;
 
@@ -240,7 +241,7 @@ RISCVTargetLowering::RISCVTargetLowering(const TargetMachine &TM,
   // TODO: add all necessary setOperationAction calls.
   setOperationAction(ISD::DYNAMIC_STACKALLOC, XLenVT, Expand);
 
-  setOperationAction(ISD::BR_JT, MVT::Other, Expand);
+  setOperationAction(ISD::BR_JT, MVT::Other, Custom); // Sets a custom lowering action for the BR_JT (branch to jump table) operation for the specified value type (MVT::Other).
   setOperationAction(ISD::BR_CC, XLenVT, Expand);
   if (RV64LegalI32 && Subtarget.is64Bit())
     setOperationAction(ISD::BR_CC, MVT::i32, Expand);
@@ -5846,6 +5847,8 @@ SDValue RISCVTargetLowering::LowerOperation(SDValue Op,
     return lowerConstantPool(Op, DAG);
   case ISD::JumpTable:
     return lowerJumpTable(Op, DAG);
+  case ISD::BR_JT:
+    return lowerBR_JT(Op, DAG); // Handles the lowering of branch to jump table (BR_JT) operations by calling the lowerBR_JT function.
   case ISD::GlobalTLSAddress:
     return lowerGlobalTLSAddress(Op, DAG);
   case ISD::Constant:
@@ -6898,6 +6901,22 @@ SDValue RISCVTargetLowering::lowerJumpTable(SDValue Op,
   JumpTableSDNode *N = cast<JumpTableSDNode>(Op);
 
   return getAddr(N, DAG);
+}
+
+SDValue RISCVTargetLowering::lowerBR_JT(SDValue Op,
+                                          SelectionDAG &DAG) const {
+  // Jump table entries as PC relative offsets. No additional tweaking
+  // is necessary here. Just get the address of the jump table.
+  SDLoc DL(Op);
+  SDValue JT = Op.getOperand(1);
+  SDValue Entry = Op.getOperand(2);
+  int JTI = cast<JumpTableSDNode>(JT.getNode())->getIndex();
+
+  SDNode *Dest =
+      DAG.getMachineNode(RISCV::JumpTableDest32, DL, MVT::i64, MVT::i64, JT,
+                         Entry, DAG.getTargetJumpTable(JTI, MVT::i64));
+  return DAG.getNode(ISD::BRIND, DL, MVT::Other, Op.getOperand(0),
+                     SDValue(Dest, 0));
 }
 
 SDValue RISCVTargetLowering::getStaticTLSAddr(GlobalAddressSDNode *N,
@@ -19537,7 +19556,8 @@ bool RISCVTargetLowering::shouldConvertFpToSat(unsigned Op, EVT FPVT,
 
 unsigned RISCVTargetLowering::getJumpTableEncoding() const {
   // If we are using the small code model, we can reduce size of jump table
-  // entry to 4 bytes.
+  // entry to 4 bytes
+  std::cout << "Name of function getJumpTableEncoding \n"; // ispis 1
   if (Subtarget.is64Bit() && !isPositionIndependent() &&
       getTargetMachine().getCodeModel() == CodeModel::Small) {
     return MachineJumpTableInfo::EK_Custom32;
@@ -19548,11 +19568,34 @@ unsigned RISCVTargetLowering::getJumpTableEncoding() const {
 const MCExpr *RISCVTargetLowering::LowerCustomJumpTableEntry(
     const MachineJumpTableInfo *MJTI, const MachineBasicBlock *MBB,
     unsigned uid, MCContext &Ctx) const {
+  std::cout << "Name of function LowerCustomJumpTableEntry \n"; // ispis 2
   assert(Subtarget.is64Bit() && !isPositionIndependent() &&
          getTargetMachine().getCodeModel() == CodeModel::Small);
   return MCSymbolRefExpr::create(MBB->getSymbol(), Ctx);
 }
 
+
+/*
+const MCExpr *RISCVTargetLowering::LowerCustomJumpTableEntry(
+    const MachineJumpTableInfo *MJTI, const MachineBasicBlock *MBB,
+    unsigned uid, MCContext &Ctx) const {
+ 
+    // Adresa osnovnog bloka koda.
+    const MCSymbolRefExpr *Base = MCSymbolRefExpr::create(MBB->getSymbol(), Ctx);
+ 
+    // Offset za dodavanje - 2 bajta
+    const MCExpr *Offset = MCConstantExpr::create(2, Ctx);
+ 
+    // Sumiranje baze i ofseta.
+    const MCExpr *Target = MCBinaryExpr::createAdd(Base, Offset, Ctx);
+ 
+    
+    // halfword
+    Target = MCBinaryExpr::createLShr(Target, MCConstantExpr::create(1, Ctx), Ctx);
+ 
+    return Target;
+}
+*/
 bool RISCVTargetLowering::isVScaleKnownToBeAPowerOfTwo() const {
   // We define vscale to be VLEN/RVVBitsPerBlock.  VLEN is always a power
   // of two >= 64, and RVVBitsPerBlock is 64.  Thus, vscale must be

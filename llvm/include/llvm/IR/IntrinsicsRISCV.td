@@ -1889,3 +1889,10 @@ let TargetPrefix = "riscv" in {
 include "llvm/IR/IntrinsicsRISCVXTHead.td"
 include "llvm/IR/IntrinsicsRISCVXsf.td"
 include "llvm/IR/IntrinsicsRISCVXCV.td"
+
+// A space-consuming intrinsic primarily for testing block and jump table
+// placements. The first argument is the number of bytes this "instruction"
+// takes up, the second and return value are essentially chains, used to force
+// ordering during ISel.
+
+def int_riscv_space : Intrinsic<[llvm_i64_ty], [llvm_i32_ty, llvm_i64_ty], []>;

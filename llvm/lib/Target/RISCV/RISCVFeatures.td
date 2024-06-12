@@ -1085,3 +1085,14 @@ def FeatureTaggedGlobals : SubtargetFeature<"tagged-globals",
     "AllowTaggedGlobals",
     "true", "Use an instruction sequence for taking the address of a global "
     "that allows a memory tag in the upper address bits">;
+
+
+// This directive defines a subtarget feature named `FeatureForce32BitJumpTables` in the LLVM compiler.
+// It enables the "force-32bit-jump-tables" option, which forces jump table entries to be 32-bits wide,
+// except when optimizing for minimal code size (`MinSize`). Specifically, this means that jump tables
+// will use 32-bit entries to optimize performance or compatibility, except in cases where the goal is
+// to reduce the size of the generated code, where entries of different widths may be used to save space.
+
+def FeatureForce32BitJumpTables
+   : SubtargetFeature<"force-32bit-jump-tables", "Force32BitJumpTables", "true",
+                      "Force jump table entries to be 32-bits wide except at MinSize">;

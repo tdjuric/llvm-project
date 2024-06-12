@@ -1520,6 +1520,33 @@ def PseudoCCSRAIW : Pseudo<(outs GPR:$dst),
                     Sched<[WriteSFB, ReadSFBJmp, ReadSFBJmp, ReadSFBALU,
                            ReadSFBALU]>;
 
+
+
+
+
+// 32-bit jump table destination is actually only 2 instructions since we can
+// use the table itself as a PC-relative base. But optimization occurs after
+// branch relaxation so be pessimistic.
+let Size = 12, Constraints = "@earlyclobber $dst,@earlyclobber $scratch" in {
+def JumpTableDest32 : Pseudo<(outs GPR:$dst, GPR:$scratch),
+                             (ins GPR:$table, GPR:$entry, i32imm:$jti), []>,
+                      Sched<[]>;
+def JumpTableDest16 : Pseudo<(outs GPR:$dst, GPR:$scratch),
+                             (ins GPR:$table, GPR:$entry, i32imm:$jti), []>,
+                      Sched<[]>;
+def JumpTableDest8 : Pseudo<(outs GPR:$dst, GPR:$scratch),
+                            (ins GPR:$table, GPR:$entry, i32imm:$jti), []>,
+                     Sched<[]>;
+}
+
+// Space-consuming pseudo instruction to aid testing of placement and reachability
+// algorithms. Immediate operand specifies the number of bytes this "instruction"
+// occupies; register operands enforce dependencies and constrain the scheduler.
+
+
+
+
+
 // Zbb/Zbkb instructions
 def PseudoCCANDN : Pseudo<(outs GPR:$dst),
                           (ins GPR:$lhs, GPR:$rhs, ixlenimm:$cc,
@@ -2063,6 +2090,7 @@ def : Pat<(sext_inreg (abs 33signbits_node:$rs1), i32),
           (PseudoCCSUBW (i64 GPR:$rs1), (i64 X0), /* COND_LT */ 2,
            (i64 GPR:$rs1), (i64 X0), (i64 GPR:$rs1))>;
 
+
 //===----------------------------------------------------------------------===//
 // Experimental RV64 i32 legalization patterns.
 //===----------------------------------------------------------------------===//
@@ -2185,3 +2213,7 @@ include "RISCVInstrInfoXCV.td"
 //===----------------------------------------------------------------------===//
 
 include "RISCVInstrGISel.td"
+
+
+
+

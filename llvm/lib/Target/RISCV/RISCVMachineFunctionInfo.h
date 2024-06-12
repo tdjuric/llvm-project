@@ -20,6 +20,7 @@
 
 namespace llvm {
 
+
 class RISCVMachineFunctionInfo;
 
 namespace yaml {
@@ -59,6 +60,7 @@ private:
   unsigned LibCallStackSize = 0;
   /// Size of RVV stack.
   uint64_t RVVStackSize = 0;
+  
   /// Alignment of RVV stack.
   Align RVVStackAlign;
   /// Padding required to keep RVV stack aligned within the main stack.
@@ -75,6 +77,13 @@ private:
   unsigned RVPushStackSize = 0;
   unsigned RVPushRegs = 0;
   int RVPushRlist = llvm::RISCVZC::RLISTENCODE::INVALID_RLIST;
+
+  // Hold the lists of LOHs.
+ 
+ // SmallVector<std::pair<unsigned, MCSymbol *>, 2> JumpTableEntryInfo;
+
+  // add DenseMap
+  DenseMap<int, std::pair<unsigned, MCSymbol *>> JumpTableEntryInfo;
 
 public:
   RISCVMachineFunctionInfo(const Function &F, const TargetSubtargetInfo *STI) {}
@@ -107,6 +116,22 @@ public:
   unsigned getReservedSpillsSize() const {
     return LibCallStackSize + RVPushStackSize;
   }
+ 
+  //add new function getJumpTableEntrySize and setJumpTableEntryInfo
+  unsigned getJumpTableEntrySize(int Idx) const { // Ova funkcija vraća veličinu unosa jump tabele za dati indeks. 
+    auto It = JumpTableEntryInfo.find(Idx);
+    if (It != JumpTableEntryInfo.end()) //Ako postoji informacija o veličini za taj indeks, vraća tu veličinu; inače, vraća podrazumijevanu veličinu od 4 bajta.
+      return It->second.first;
+    return 4;
+  }
+  MCSymbol *getJumpTableEntryPCRelSymbol(int Idx) const { //Ova funkcija vraća simbol koji predstavlja relativnu adresu unosa jump tabele za dati indeks.
+    return JumpTableEntryInfo.find(Idx)->second.second;
+  }
+  void setJumpTableEntryInfo(int Idx, unsigned Size, MCSymbol *PCRelSym) { //Ova funkcija postavlja informacije o unosu jump tabele za dati indeks. 
+    JumpTableEntryInfo[Idx] = std::make_pair(Size, PCRelSym); // Ona čuva veličinu unosa i povezani simbol koji predstavlja relativnu adresu tog unosa.
+  }
+
+
 
   unsigned getLibCallStackSize() const { return LibCallStackSize; }
   void setLibCallStackSize(unsigned Size) { LibCallStackSize = Size; }

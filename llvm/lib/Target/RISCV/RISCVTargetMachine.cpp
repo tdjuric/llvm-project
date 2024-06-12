@@ -37,6 +37,8 @@
 #include "llvm/Target/TargetOptions.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/Scalar.h"
+#include "llvm/CodeGen/CommandFlags.h"
+#include "llvm/CodeGen/TargetPassConfig.h"
 #include <optional>
 using namespace llvm;
 
@@ -101,6 +103,11 @@ static cl::opt<bool> EnableMISchedLoadClustering(
     cl::desc("Enable load clustering in the machine scheduler"),
     cl::init(false));
 
+static cl::opt<bool> EnableCompressJumpTables( //riscv new
+    "riscv-enable-compress-jump-tables", cl::Hidden, cl::init(true),
+    cl::desc("Use smallest possible entries for jump tables on RISC-V"));
+
+
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   RegisterTargetMachine<RISCVTargetMachine> X(getTheRISCV32Target());
   RegisterTargetMachine<RISCVTargetMachine> Y(getTheRISCV64Target());
@@ -127,6 +134,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
   initializeRISCVInitUndefPass(*PR);
   initializeRISCVMoveMergePass(*PR);
   initializeRISCVPushPopOptPass(*PR);
+  initializeRISCVCompressJumpTablesPass(*PR); //new
 }
 
 static StringRef computeDataLayout(const Triple &TT,
@@ -528,6 +536,9 @@ void RISCVPassConfig::addPreEmitPass() {
   if (TM->getOptLevel() >= CodeGenOptLevel::Default &&
       EnableRISCVCopyPropagation)
     addPass(createMachineCopyPropagationPass(true));
+
+  if (TM->getOptLevel() != CodeGenOptLevel::None && EnableCompressJumpTables) //new pass 
+    addPass(createRISCVCompressJumpTablesPass());
 }
 
 void RISCVPassConfig::addPreEmitPass2() {

@@ -51,6 +51,7 @@
 #include <cstdint>
 #include <tuple>
 #include <utility>
+#include <iostream>
 
 using namespace llvm;
 
@@ -987,12 +988,14 @@ void SelectionDAGLegalize::LegalizeOp(SDNode *Node) {
              TargetLowering::TypeLegal &&
            "Unexpected illegal type!");
 
-  for (const SDValue &Op : Node->op_values())
+  for (const SDValue &Op : Node->op_values()){
+    Op.dump();
     assert((TLI.getTypeAction(*DAG.getContext(), Op.getValueType()) ==
               TargetLowering::TypeLegal ||
             Op.getOpcode() == ISD::TargetConstant ||
             Op.getOpcode() == ISD::Register) &&
             "Unexpected illegal type!");
+  }
 #endif
 
   // Figure out the correct action; the way to query this varies by opcode
@@ -3954,6 +3957,7 @@ bool SelectionDAGLegalize::ExpandNode(SDNode *Node) {
 
     unsigned EntrySize =
       DAG.getMachineFunction().getJumpTableInfo()->getEntrySize(TD);
+    std::cout << "Entry Size: " << EntrySize << std::endl;
 
     // For power-of-two jumptable entry sizes convert multiplication to a shift.
     // This transformation needs to be done here since otherwise the MIPS

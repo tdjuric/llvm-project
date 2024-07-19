@@ -18,6 +18,7 @@
 #include "llvm/CodeGen/MachineFrameInfo.h"
 #include "llvm/CodeGen/MachineFunction.h"
 
+
 namespace llvm {
 
 
@@ -79,11 +80,12 @@ private:
   int RVPushRlist = llvm::RISCVZC::RLISTENCODE::INVALID_RLIST;
 
   // Hold the lists of LOHs.
- 
+ //SmallVector
  // SmallVector<std::pair<unsigned, MCSymbol *>, 2> JumpTableEntryInfo;
 
   // add DenseMap
-  DenseMap<int, std::pair<unsigned, MCSymbol *>> JumpTableEntryInfo;
+ DenseMap<int, std::pair<unsigned, MCSymbol *>> JumpTableEntryInfo;
+ 
 
 public:
   RISCVMachineFunctionInfo(const Function &F, const TargetSubtargetInfo *STI) {}
@@ -124,12 +126,21 @@ public:
       return It->second.first;
     return 4;
   }
-  MCSymbol *getJumpTableEntryPCRelSymbol(int Idx) const { //Ova funkcija vraća simbol koji predstavlja relativnu adresu unosa jump tabele za dati indeks.
+  MCSymbol *getJumpTableEntryPCRelSymbol(int Idx) const { 
     return JumpTableEntryInfo.find(Idx)->second.second;
   }
   void setJumpTableEntryInfo(int Idx, unsigned Size, MCSymbol *PCRelSym) { //Ova funkcija postavlja informacije o unosu jump tabele za dati indeks. 
     JumpTableEntryInfo[Idx] = std::make_pair(Size, PCRelSym); // Ona čuva veličinu unosa i povezani simbol koji predstavlja relativnu adresu tog unosa.
   }
+
+  /*MCSymbol *RISCVMachineFunctionInfo::getJumpTableEntryPCRelSymbol(int Idx) const {
+    auto It = JumpTableEntrySymbols.find(Idx);
+    if (It != JumpTableEntrySymbols.end())
+      return It->second;
+    std::cerr << "Jump table entry not found for Idx: " << Idx << std::endl;
+    return nullptr;
+  }*/
+
 
 
 

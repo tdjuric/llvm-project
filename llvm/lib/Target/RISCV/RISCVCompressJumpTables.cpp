@@ -59,10 +59,12 @@ int RISCVCompressJumpTables::computeBlockSize(MachineBasicBlock &MBB) {
     Size += TII->getInstSizeInBytes(MI);
   return Size;
 }
-
+/*Funkcija scanFunction ima zadatak da prebroji i zabiljezi offset svakog osnovnog bloka (basic block) 
+unutar funkcije mašinskog koda (MachineFunction). Ovaj offset predstavlja količinu bajtova od početka 
+funkcije do početka svakog osnovnog bloka. Na osnovu ovih informacija može se kasnije efikasno optimizovati jump table. */
 void RISCVCompressJumpTables::scanFunction() {
   BlockInfo.clear();
-  BlockInfo.resize(MF->getNumBlockIDs());
+  BlockInfo.resize(MF->getNumBlockIDs()); //BlockInfo sadrži tačne offsete za sve osnovne blokove unutar funkcije
 
   int Offset = 0;
   for (MachineBasicBlock &MBB : *MF) {
@@ -72,59 +74,56 @@ void RISCVCompressJumpTables::scanFunction() {
 }
 
 bool RISCVCompressJumpTables::compressJumpTable(MachineInstr &MI, int Offset) {
-  if (MI.getOpcode() != RISCV::JumpTableDest32)
-    return false;
+    if (MI.getOpcode() != RISCV::JumpTableDest32)
+        return false;
 
-  int JTIdx = MI.getOperand(4).getIndex();
-  auto &JTInfo = *MF->getJumpTableInfo();
-  const MachineJumpTableEntry &JT = JTInfo.getJumpTables()[JTIdx];
+    int JTIdx = MI.getOperand(4).getIndex();
+    auto &JTInfo = *MF->getJumpTableInfo();
+    const MachineJumpTableEntry &JT = JTInfo.getJumpTables()[JTIdx];
 
-  // The jump-table might have been optimized away.
-  if (JT.MBBs.empty())
-    return false;
+    // The jump-table might have been optimized away.
+    if (JT.MBBs.empty())
+        return false;
 
-  int MaxOffset = std::numeric_limits<int>::min(),
-      MinOffset = std::numeric_limits<int>::max();
-  MachineBasicBlock *MinBlock = nullptr;
-  for (auto Block : JT.MBBs) {
-    int BlockOffset = BlockInfo[Block->getNumber()];
-    //assert(BlockOffset % 4 == 0 && "misaligned basic block");
+    int MaxOffset = std::numeric_limits<int>::min(),
+        MinOffset = std::numeric_limits<int>::max();
+    MachineBasicBlock *MinBlock = nullptr;
+    for (auto Block : JT.MBBs) {
+        int BlockOffset = BlockInfo[Block->getNumber()];
+        //assert(BlockOffset % 4 == 0 && "misaligned basic block");
 
-    MaxOffset = std::max(MaxOffset, BlockOffset);
-    if (BlockOffset <= MinOffset) {
-      MinOffset = BlockOffset;
-      MinBlock = Block;
+        MaxOffset = std::max(MaxOffset, BlockOffset);
+        if (BlockOffset <= MinOffset) {
+            MinOffset = BlockOffset;
+            MinBlock = Block;
+        }
     }
-  }
 
-  // The ADR instruction needed to calculate the address of the first reachable
-  // basic block can address +/-1MB.
-  if (!isInt<21>(MinOffset - Offset)) {
-    ++NumJT32;
+    int Span = MaxOffset - MinOffset;
+    auto AFI = MF->getInfo<RISCVMachineFunctionInfo>();
+
+      if (isInt<8>(Span) && false) { 
+        AFI->setJumpTableEntryInfo(JTIdx, 1, MinBlock->getSymbol()); // 1 byte for byte
+        MI.setDesc(TII->get(RISCV::JumpTableDest8));
+        ++NumJT8;
+        return true;
+      } else if (isInt<16>(Span) && false) {
+        AFI->setJumpTableEntryInfo(JTIdx, 2, MinBlock->getSymbol()); // 2 bytes for half word
+        MI.setDesc(TII->get(RISCV::JumpTableDest16));
+        ++NumJT16;
+        return true;
+      }else if(isInt<32>(Span)) {
+        AFI->setJumpTableEntryInfo(JTIdx, 4, MinBlock->getSymbol()); // 4 bytes for word
+        MI.setDesc(TII->get(RISCV::JumpTableDest32));
+        ++NumJT32;
+        return true;
+    }
     return false;
-  }
-
-  int Span = MaxOffset - MinOffset;
-  auto AFI = MF->getInfo<RISCVMachineFunctionInfo>();
-  if (isUInt<8>(Span / 4)) {
-    AFI->setJumpTableEntryInfo(JTIdx, 1, MinBlock->getSymbol());
-    MI.setDesc(TII->get(RISCV::JumpTableDest8));
-    ++NumJT8;
-    return true;
-  } else if (isUInt<16>(Span / 4)) {
-    AFI->setJumpTableEntryInfo(JTIdx, 2, MinBlock->getSymbol());
-    MI.setDesc(TII->get(RISCV::JumpTableDest16));
-    ++NumJT16;
-    return true;
-  }
-
-  ++NumJT32;
-  return false;
 }
 
 
-
 bool RISCVCompressJumpTables::runOnMachineFunction(MachineFunction &MFIn) {
+  //return false;
   bool Changed = false;
   MF = &MFIn;
 

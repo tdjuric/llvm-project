@@ -1459,12 +1459,10 @@ void RISCVAsmPrinter::LowerJumpTableDestSmall(llvm::MCStreamer &OutStreamer, con
     } 
 
     // Add the offset to the already materialized base label address. 
+    //Provjera 
     EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADD) 
         .addReg(DestReg) 
         .addReg(DestReg) 
         .addReg(ScratchReg)); 
 
 }
-
-
-

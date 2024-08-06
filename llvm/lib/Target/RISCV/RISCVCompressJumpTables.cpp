@@ -11,6 +11,7 @@
 #include "llvm/MC/MCContext.h"
 #include "llvm/Support/Debug.h"
 
+
 using namespace llvm;
 
 
@@ -59,12 +60,10 @@ int RISCVCompressJumpTables::computeBlockSize(MachineBasicBlock &MBB) {
     Size += TII->getInstSizeInBytes(MI);
   return Size;
 }
-/*Funkcija scanFunction ima zadatak da prebroji i zabiljezi offset svakog osnovnog bloka (basic block) 
-unutar funkcije mašinskog koda (MachineFunction). Ovaj offset predstavlja količinu bajtova od početka 
-funkcije do početka svakog osnovnog bloka. Na osnovu ovih informacija može se kasnije efikasno optimizovati jump table. */
+
 void RISCVCompressJumpTables::scanFunction() {
   BlockInfo.clear();
-  BlockInfo.resize(MF->getNumBlockIDs()); //BlockInfo sadrži tačne offsete za sve osnovne blokove unutar funkcije
+  BlockInfo.resize(MF->getNumBlockIDs()); 
 
   int Offset = 0;
   for (MachineBasicBlock &MBB : *MF) {
@@ -102,20 +101,23 @@ bool RISCVCompressJumpTables::compressJumpTable(MachineInstr &MI, int Offset) {
     int Span = MaxOffset - MinOffset;
     auto AFI = MF->getInfo<RISCVMachineFunctionInfo>();
 
-      if (isInt<8>(Span) && false) { 
+      if (isInt<8>(Span)) { 
         AFI->setJumpTableEntryInfo(JTIdx, 1, MinBlock->getSymbol()); // 1 byte for byte
         MI.setDesc(TII->get(RISCV::JumpTableDest8));
         ++NumJT8;
+        dbgs() << "Span je: " << Span << "\n";
         return true;
-      } else if (isInt<16>(Span) && false) {
+      } else if (isInt<16>(Span)) {
         AFI->setJumpTableEntryInfo(JTIdx, 2, MinBlock->getSymbol()); // 2 bytes for half word
         MI.setDesc(TII->get(RISCV::JumpTableDest16));
         ++NumJT16;
+        dbgs() << "Span je: " << Span << "\n";
         return true;
       }else if(isInt<32>(Span)) {
         AFI->setJumpTableEntryInfo(JTIdx, 4, MinBlock->getSymbol()); // 4 bytes for word
         MI.setDesc(TII->get(RISCV::JumpTableDest32));
         ++NumJT32;
+        dbgs() << "Span je: " << Span << "\n";
         return true;
     }
     return false;

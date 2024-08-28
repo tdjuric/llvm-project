@@ -20436,4 +20436,4 @@ namespace llvm::RISCVVIntrinsicsTable {
 #define GET_RISCVVIntrinsicsTable_IMPL
 #include "RISCVGenSearchableTables.inc"
 
-} // namespace llvm::RISCVVIntrinsicsTable
+} 

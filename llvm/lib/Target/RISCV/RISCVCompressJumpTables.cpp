@@ -11,15 +11,13 @@
 #include "llvm/MC/MCContext.h"
 #include "llvm/Support/Debug.h"
 
-
 using namespace llvm;
-
 
 #define DEBUG_TYPE "riscv-jump-tables"
 
 STATISTIC(NumJT8, "Number of jump-tables with 1-byte entries");
 STATISTIC(NumJT16, "Number of jump-tables with 2-byte entries");
-STATISTIC(NumJT32, "Number of jump-tables with 4-byte entries"); 
+STATISTIC(NumJT32, "Number of jump-tables with 4-byte entries");
 
 namespace {
 class RISCVCompressJumpTables : public MachineFunctionPass {
@@ -49,7 +47,7 @@ public:
   }
 };
 char RISCVCompressJumpTables::ID = 0;
-}
+} // namespace
 
 INITIALIZE_PASS(RISCVCompressJumpTables, DEBUG_TYPE,
                 "RISCV compress jump tables pass", false, false)
@@ -63,7 +61,7 @@ int RISCVCompressJumpTables::computeBlockSize(MachineBasicBlock &MBB) {
 
 void RISCVCompressJumpTables::scanFunction() {
   BlockInfo.clear();
-  BlockInfo.resize(MF->getNumBlockIDs()); 
+  BlockInfo.resize(MF->getNumBlockIDs());
 
   int Offset = 0;
   for (MachineBasicBlock &MBB : *MF) {
@@ -73,59 +71,59 @@ void RISCVCompressJumpTables::scanFunction() {
 }
 
 bool RISCVCompressJumpTables::compressJumpTable(MachineInstr &MI, int Offset) {
-    if (MI.getOpcode() != RISCV::JumpTableDest32)
-        return false;
-
-    int JTIdx = MI.getOperand(4).getIndex();
-    auto &JTInfo = *MF->getJumpTableInfo();
-    const MachineJumpTableEntry &JT = JTInfo.getJumpTables()[JTIdx];
-
-    // The jump-table might have been optimized away.
-    if (JT.MBBs.empty())
-        return false;
-
-    int MaxOffset = std::numeric_limits<int>::min(),
-        MinOffset = std::numeric_limits<int>::max();
-    MachineBasicBlock *MinBlock = nullptr;
-    for (auto Block : JT.MBBs) {
-        int BlockOffset = BlockInfo[Block->getNumber()];
-        //assert(BlockOffset % 4 == 0 && "misaligned basic block");
-
-        MaxOffset = std::max(MaxOffset, BlockOffset);
-        if (BlockOffset <= MinOffset) {
-            MinOffset = BlockOffset;
-            MinBlock = Block;
-        }
-    }
-
-    int Span = MaxOffset - MinOffset;
-    auto AFI = MF->getInfo<RISCVMachineFunctionInfo>();
-
-      if (isInt<8>(Span)) { 
-        AFI->setJumpTableEntryInfo(JTIdx, 1, MinBlock->getSymbol()); // 1 byte for byte
-        MI.setDesc(TII->get(RISCV::JumpTableDest8));
-        ++NumJT8;
-        dbgs() << "Span je: " << Span << "\n";
-        return true;
-      } else if (isInt<16>(Span)) {
-        AFI->setJumpTableEntryInfo(JTIdx, 2, MinBlock->getSymbol()); // 2 bytes for half word
-        MI.setDesc(TII->get(RISCV::JumpTableDest16));
-        ++NumJT16;
-        dbgs() << "Span je: " << Span << "\n";
-        return true;
-      }else if(isInt<32>(Span)) {
-        AFI->setJumpTableEntryInfo(JTIdx, 4, MinBlock->getSymbol()); // 4 bytes for word
-        MI.setDesc(TII->get(RISCV::JumpTableDest32));
-        ++NumJT32;
-        dbgs() << "Span je: " << Span << "\n";
-        return true;
-    }
+  if (MI.getOpcode() != RISCV::JumpTableDest32)
     return false;
+
+  int JTIdx = MI.getOperand(4).getIndex();
+  auto &JTInfo = *MF->getJumpTableInfo();
+  const MachineJumpTableEntry &JT = JTInfo.getJumpTables()[JTIdx];
+
+  // The jump-table might have been optimized away.
+  if (JT.MBBs.empty())
+    return false;
+
+  int MaxOffset = std::numeric_limits<int>::min(),
+      MinOffset = std::numeric_limits<int>::max();
+  MachineBasicBlock *MinBlock = nullptr;
+  for (auto Block : JT.MBBs) {
+    int BlockOffset = BlockInfo[Block->getNumber()];
+
+    MaxOffset = std::max(MaxOffset, BlockOffset);
+    if (BlockOffset <= MinOffset) {
+      MinOffset = BlockOffset;
+      MinBlock = Block;
+    }
+  }
+
+  int Span = MaxOffset - MinOffset;
+  auto AFI = MF->getInfo<RISCVMachineFunctionInfo>();
+
+  if (isInt<8>(Span)) {
+    AFI->setJumpTableEntryInfo(JTIdx, 1,
+                               MinBlock->getSymbol()); // 1 byte for byte
+    MI.setDesc(TII->get(RISCV::JumpTableDest8));
+    ++NumJT8;
+    dbgs() << "Span je: " << Span << "\n";
+    return true;
+  } else if (isInt<16>(Span)) {
+    AFI->setJumpTableEntryInfo(JTIdx, 2,
+                               MinBlock->getSymbol()); // 2 bytes for half word
+    MI.setDesc(TII->get(RISCV::JumpTableDest16));
+    ++NumJT16;
+    dbgs() << "Span je: " << Span << "\n";
+    return true;
+  } else if (isInt<32>(Span)) {
+    AFI->setJumpTableEntryInfo(JTIdx, 4,
+                               MinBlock->getSymbol()); // 4 bytes for word
+    MI.setDesc(TII->get(RISCV::JumpTableDest32));
+    ++NumJT32;
+    dbgs() << "Span je: " << Span << "\n";
+    return true;
+  }
+  return false;
 }
 
-
 bool RISCVCompressJumpTables::runOnMachineFunction(MachineFunction &MFIn) {
-  //return false;
   bool Changed = false;
   MF = &MFIn;
 

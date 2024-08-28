@@ -1492,7 +1492,7 @@ unsigned RISCVInstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
     return 0;
 
   unsigned Opcode = MI.getOpcode();
-  unsigned NumBytes = 0; // new
+  unsigned NumBytes = 0; 
 
   if (Opcode == TargetOpcode::INLINEASM ||
       Opcode == TargetOpcode::INLINEASM_BR) {
@@ -1534,15 +1534,15 @@ unsigned RISCVInstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
   case TargetOpcode::STATEPOINT:
     // The size of the statepoint intrinsic is the number of bytes requested
     return StatepointOpers(&MI).getNumPatchBytes();
-  case RISCV::JumpTableDest32: // new
-  case RISCV::JumpTableDest16: // new
-  case RISCV::JumpTableDest8: // new
-    NumBytes = 12; // new
-    break; // new
+  case RISCV::JumpTableDest32: 
+  case RISCV::JumpTableDest16: 
+  case RISCV::JumpTableDest8: 
+    NumBytes = 12; 
+    break; 
   default:
     return get(Opcode).getSize();
   }
-  return NumBytes; // new
+  return NumBytes; 
 }
 
 unsigned RISCVInstrInfo::getInstBundleLength(const MachineInstr &MI) const {

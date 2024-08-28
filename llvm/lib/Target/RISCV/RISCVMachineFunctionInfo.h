@@ -119,29 +119,18 @@ public:
     return LibCallStackSize + RVPushStackSize;
   }
  
-  //add new function getJumpTableEntrySize and setJumpTableEntryInfo
-  unsigned getJumpTableEntrySize(int Idx) const { // Ova funkcija vraća veličinu unosa jump tabele za dati indeks. 
+  unsigned getJumpTableEntrySize(int Idx) const { 
     auto It = JumpTableEntryInfo.find(Idx);
-    if (It != JumpTableEntryInfo.end()) //Ako postoji informacija o veličini za taj indeks, vraća tu veličinu; inače, vraća podrazumijevanu veličinu od 4 bajta.
+    if (It != JumpTableEntryInfo.end()) 
       return It->second.first;
     return 4;
   }
   MCSymbol *getJumpTableEntryPCRelSymbol(int Idx) const { 
     return JumpTableEntryInfo.find(Idx)->second.second;
   }
-  void setJumpTableEntryInfo(int Idx, unsigned Size, MCSymbol *PCRelSym) { //Ova funkcija postavlja informacije o unosu jump tabele za dati indeks. 
-    JumpTableEntryInfo[Idx] = std::make_pair(Size, PCRelSym); // Ona čuva veličinu unosa i povezani simbol koji predstavlja relativnu adresu tog unosa.
+  void setJumpTableEntryInfo(int Idx, unsigned Size, MCSymbol *PCRelSym) { 
+    JumpTableEntryInfo[Idx] = std::make_pair(Size, PCRelSym); 
   }
-
-  /*MCSymbol *RISCVMachineFunctionInfo::getJumpTableEntryPCRelSymbol(int Idx) const {
-    auto It = JumpTableEntrySymbols.find(Idx);
-    if (It != JumpTableEntrySymbols.end())
-      return It->second;
-    std::cerr << "Jump table entry not found for Idx: " << Idx << std::endl;
-    return nullptr;
-  }*/
-
-
 
 
   unsigned getLibCallStackSize() const { return LibCallStackSize; }

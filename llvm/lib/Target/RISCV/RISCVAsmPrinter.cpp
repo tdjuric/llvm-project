@@ -26,9 +26,9 @@
 #include "llvm/CodeGen/MachineConstantPool.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/MachineInstr.h"
-#include "llvm/CodeGen/MachineJumpTableInfo.h" // include MachineJumpTableInfo.h
-#include "llvm/CodeGen/MachineModuleInfoImpls.h" // include MachineModuleInfoImpls.h
+#include "llvm/CodeGen/MachineJumpTableInfo.h" 
 #include "llvm/CodeGen/MachineModuleInfo.h"
+#include "llvm/CodeGen/MachineModuleInfoImpls.h" 
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCInst.h"
@@ -40,8 +40,8 @@
 #include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/RISCVISAInfo.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm/Transforms/Instrumentation/HWAddressSanitizer.h"
 #include "llvm/Target/TargetLoweringObjectFile.h"
+#include "llvm/Transforms/Instrumentation/HWAddressSanitizer.h"
 #include <iostream>
 
 using namespace llvm;
@@ -75,7 +75,7 @@ public:
   void LowerSTATEPOINT(MCStreamer &OutStreamer, StackMaps &SM,
                        const MachineInstr &MI);
 
- bool runOnMachineFunction(MachineFunction &MF) override;
+  bool runOnMachineFunction(MachineFunction &MF) override;
 
   void emitInstruction(const MachineInstr *MI) override;
 
@@ -97,12 +97,10 @@ public:
   // Wrapper needed for tblgenned pseudo lowering.
   bool lowerOperand(const MachineOperand &MO, MCOperand &MCOp) const;
 
-  
   void emitJumpTableInfo() override;
-  void emitJumpTableEntry(const MachineJumpTableInfo *MJTI,           
-                          const MachineBasicBlock *MBB, unsigned JTI); 
-  void LowerJumpTableDestSmall(MCStreamer &OutStreamer, const MachineInstr &MI); 
-
+  void emitJumpTableEntry(const MachineJumpTableInfo *MJTI,
+                          const MachineBasicBlock *MBB, unsigned JTI);
+  void LowerJumpTableDestSmall(MCStreamer &OutStreamer, const MachineInstr &MI);
 
   void emitStartOfAsmFile(Module &M) override;
   void emitEndOfAsmFile(Module &M) override;
@@ -116,9 +114,8 @@ private:
   void emitNTLHint(const MachineInstr *MI);
 
   bool lowerToMCInst(const MachineInstr *MI, MCInst &OutMI);
-  
 };
-}
+} // namespace
 
 void RISCVAsmPrinter::LowerSTACKMAP(MCStreamer &OutStreamer, StackMaps &SM,
                                     const MachineInstr &MI) {
@@ -246,7 +243,6 @@ void RISCVAsmPrinter::emitInstruction(const MachineInstr *MI) {
   if (emitPseudoExpansionLowering(*OutStreamer, MI))
     return;
 
-
   switch (MI->getOpcode()) {
   case RISCV::HWASAN_CHECK_MEMACCESS_SHORTGRANULES:
     LowerHWASAN_CHECK_MEMACCESS(*MI);
@@ -260,36 +256,39 @@ void RISCVAsmPrinter::emitInstruction(const MachineInstr *MI) {
   case RISCV::PseudoRVVInitUndefM8:
     return;
   case RISCV::JumpTableDest32: {
-  unsigned DestReg = MI->getOperand(0).getReg(),
-          ScratchReg = MI->getOperand(1).getReg(),
-          TableReg = MI->getOperand(2).getReg(),
-          EntryReg = MI->getOperand(3).getReg();
+    unsigned DestReg = MI->getOperand(0).getReg(),
+             ScratchReg = MI->getOperand(1).getReg(),
+             TableReg = MI->getOperand(2).getReg(),
+             EntryReg = MI->getOperand(3).getReg();
 
-  // Shift left EntryReg by 2 and store in ScratchReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::SLLI)
-                                  .addReg(ScratchReg)
-                                  .addReg(EntryReg)
-                                  .addImm(2));
+    // Shift left EntryReg by 2 and store in ScratchReg
+    EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::SLLI)
+                                     .addReg(ScratchReg)
+                                     .addReg(EntryReg)
+                                     .addImm(2));
 
-  // Add the base address (TableReg) to the shifted offset (ScratchReg) and store in ScratchReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::ADD)
-                                  .addReg(ScratchReg)
-                                  .addReg(TableReg)
-                                  .addReg(ScratchReg));
+    // Add the base address (TableReg) to the shifted offset (ScratchReg) and
+    // store in ScratchReg
+    EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::ADD)
+                                     .addReg(ScratchReg)
+                                     .addReg(TableReg)
+                                     .addReg(ScratchReg));
 
-  //Load the word from the computed address into ScratchReg (which will be sign-extended)
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::LW)
-                                  .addReg(ScratchReg)
-                                  .addReg(ScratchReg)
-                                  .addImm(0));
+    // Load the word from the computed address into ScratchReg (which will be
+    // sign-extended)
+    EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::LW)
+                                     .addReg(ScratchReg)
+                                     .addReg(ScratchReg)
+                                     .addImm(0));
 
-  // Add the value in ScratchReg to the base address (TableReg) and store in DestReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::ADD)
-                                  .addReg(DestReg)
-                                  .addReg(TableReg)
-                                  .addReg(ScratchReg));
-      return;
-    }
+    // Add the value in ScratchReg to the base address (TableReg) and store in
+    // DestReg
+    EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::ADD)
+                                     .addReg(DestReg)
+                                     .addReg(TableReg)
+                                     .addReg(ScratchReg));
+    return;
+  }
   case RISCV ::JumpTableDest16:
   case RISCV ::JumpTableDest8:
     LowerJumpTableDestSmall(*OutStreamer, *MI);
@@ -305,97 +304,6 @@ void RISCVAsmPrinter::emitInstruction(const MachineInstr *MI) {
   if (!lowerToMCInst(MI, OutInst))
     EmitToStreamer(*OutStreamer, OutInst);
 }
-
-/*case RISCV::JumpTableDest32: {
-   unsigned DestReg = MI->getOperand(0).getReg(),
-          ScratchReg = MI->getOperand(1).getReg(),
-          TableReg = MI->getOperand(2).getReg(),
-          EntryReg = MI->getOperand(3).getReg();
-
-  // Shift left EntryReg by 2 and store in ScratchReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::SLLI)
-                                  .addReg(ScratchReg)
-                                  .addReg(EntryReg)
-                                  .addImm(2));
-
-  // Add the base address (TableReg) to the shifted offset (ScratchReg) and store in ScratchReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::ADD)
-                                  .addReg(ScratchReg)
-                                  .addReg(TableReg)
-                                  .addReg(ScratchReg));
-
-  //Load the word from the computed address into ScratchReg (which will be sign-extended)
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::LW)
-                                  .addReg(ScratchReg)
-                                  .addReg(ScratchReg)
-                                  .addImm(0));
-
-  Sign-extend the loaded 32-bit word to 64-bit
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::SLLI)
-                                  .addReg(ScratchReg)
-                                  .addReg(ScratchReg)
-                                  .addImm(32));
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::SRAI)
-                                  .addReg(ScratchReg)
-                                  .addReg(ScratchReg)
-                                  .addImm(32));
-
-  // Add the value in ScratchReg to the base address (TableReg) and store in DestReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::ADD)
-                                  .addReg(DestReg)
-                                  .addReg(TableReg)
-                                  .addReg(ScratchReg));
-      return;
-    }
-  case RISCV ::JumpTableDest16:
-  case RISCV ::JumpTableDest8:*/
-
-
- /*case RISCV::JumpTableDest32: {
-   unsigned DestReg = MI->getOperand(0).getReg(),
-          ScratchReg = MI->getOperand(1).getReg(),
-          TableReg = MI->getOperand(2).getReg(),
-          EntryReg = MI->getOperand(3).getReg();
-
-  // Shift left EntryReg by 2 and store in ScratchReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::SLLI)
-                                  .addReg(ScratchReg)
-                                  .addReg(EntryReg)
-                                  .addImm(2));
-
-  // Add the base address (TableReg) to the shifted offset (ScratchReg) and store in ScratchReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::ADD)
-                                  .addReg(ScratchReg)
-                                  .addReg(TableReg)
-                                  .addReg(ScratchReg));
-
-  //Load the word from the computed address into ScratchReg (which will be sign-extended)
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::LW)
-                                  .addReg(ScratchReg)
-                                  .addReg(ScratchReg)
-                                  .addImm(0));
-
-  // Sign-extend the loaded 32-bit word to 64-bit
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::SLLI)
-                                  .addReg(ScratchReg)
-                                  .addReg(ScratchReg)
-                                  .addImm(32));
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::SRAI)
-                                  .addReg(ScratchReg)
-                                  .addReg(ScratchReg)
-                                  .addImm(32));
-
-  // Add the value in ScratchReg to the base address (TableReg) and store in DestReg
-  EmitToStreamer(*OutStreamer, MCInstBuilder(RISCV::ADD)
-                                  .addReg(DestReg)
-                                  .addReg(TableReg)
-                                  .addReg(ScratchReg));
-      return;
-    }
-  case RISCV ::JumpTableDest16:
-  case RISCV ::JumpTableDest8:
-    LowerJumpTableDestSmall(*OutStreamer, *MI);
-    return;*/
 
 bool RISCVAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
                                       const char *ExtraCode, raw_ostream &OS) {
@@ -856,11 +764,9 @@ void RISCVAsmPrinter::EmitHwasanMemaccessSymbols(Module &M) {
                                                                             8),
         MCSTI);
     if (Reg != RISCV::X10)
-      OutStreamer->emitInstruction(MCInstBuilder(RISCV::ADDI)
-                                       .addReg(RISCV::X10)
-                                       .addReg(Reg)
-                                       .addImm(0),
-                                   MCSTI);
+      OutStreamer->emitInstruction(
+          MCInstBuilder(RISCV::ADDI).addReg(RISCV::X10).addReg(Reg).addImm(0),
+          MCSTI);
     OutStreamer->emitInstruction(
         MCInstBuilder(RISCV::ADDI)
             .addReg(RISCV::X11)
@@ -1129,340 +1035,148 @@ bool RISCVAsmPrinter::lowerToMCInst(const MachineInstr *MI, MCInst &OutMI) {
   return false;
 }
 
-
-/*
-    unsigned Size = AFI->getJumpTableEntrySize(JTI); // Dobijanje veličine unosa u jump tabeli
-    unsigned Log2Alignment = llvm::Log2_32(Size);   // Izračunavanje logaritma base 2 veličine
-
-    llvm::Align AlignmentObject(1 << Log2Alignment); // Kreiranje Align objekta s odgovarajućim logaritmom base 2
-
-    OutStreamer->emitValueToAlignment(AlignmentObject); 
-*/
-
-void RISCVAsmPrinter::emitJumpTableInfo() { 
+void RISCVAsmPrinter::emitJumpTableInfo() {
   const MachineJumpTableInfo *MJTI = MF->getJumpTableInfo();
-  //std::cout << "Function name: emitJumpTableInfo" << std::endl;
-  if (!MJTI) return;
- 
+  if (!MJTI)
+    return;
+
   const std::vector<MachineJumpTableEntry> &JT = MJTI->getJumpTables();
-  if (JT.empty()) return;
- 
+  if (JT.empty())
+    return;
+
   const TargetLoweringObjectFile &TLOF = getObjFileLowering();
   MCSection *ReadOnlySec = TLOF.getSectionForJumpTable(MF->getFunction(), TM);
   OutStreamer->switchSection(ReadOnlySec);
- 
-  //auto AFI = MF->getInfo<RISCVMachineFunctionInfo>();
+
+  // auto AFI = MF->getInfo<RISCVMachineFunctionInfo>();
   for (unsigned JTI = 0, e = JT.size(); JTI != e; ++JTI) {
-    const std::vector<MachineBasicBlock*> &JTBBs = JT[JTI].MBBs;
- 
+    const std::vector<MachineBasicBlock *> &JTBBs = JT[JTI].MBBs;
+
     // If this jump table was deleted, ignore it.
-    if (JTBBs.empty()) continue;
+    if (JTBBs.empty())
+      continue;
 
     OutStreamer->emitLabel(GetJTISymbol(JTI));
- 
+
     for (auto *JTBB : JTBBs)
       emitJumpTableEntry(MJTI, JTBB, JTI);
   }
 }
 
-
-
-void RISCVAsmPrinter::emitJumpTableEntry(const MachineJumpTableInfo *MJTI, 
+void RISCVAsmPrinter::emitJumpTableEntry(const MachineJumpTableInfo *MJTI,
                                          const MachineBasicBlock *MBB,
                                          unsigned JTI) {
   // Create an initial value expression for the jump table entry
   const MCExpr *Value = MCSymbolRefExpr::create(MBB->getSymbol(), OutContext);
- 
+
   // Retrieve the RISC-V specific function information
   auto AFI = MF->getInfo<RISCVMachineFunctionInfo>();
- 
+
   // Check if AFI is null
   if (!AFI) {
     std::cerr << "AFI is null!" << std::endl;
     return;
   }
- 
+
   // Retrieve the size of the jump table entry
   unsigned Size = AFI->getJumpTableEntrySize(JTI);
-  //std::cout << "Retrieved Size: " << Size << std::endl;
 
-  if (Size == 1) { 
+  if (Size == 1) {
     // .byte (LBB - LBB)
     const MCSymbol *BaseSym = AFI->getJumpTableEntryPCRelSymbol(JTI);
     const MCExpr *Base = MCSymbolRefExpr::create(BaseSym, OutContext);
     Value = MCBinaryExpr::createSub(Value, Base, OutContext);
 
-  } else if (Size == 2) { 
-    // .hword (LBB - LBB) 
+  } else if (Size == 2) {
+    // .hword (LBB - LBB)
     const MCSymbol *BaseSym = AFI->getJumpTableEntryPCRelSymbol(JTI);
     const MCExpr *Base = MCSymbolRefExpr::create(BaseSym, OutContext);
     Value = MCBinaryExpr::createSub(Value, Base, OutContext);
 
-  } else if (Size == 4) { // If entry size is 4 bytes (word)
+  } else if (Size == 4) {
     // .word LBB - LJTI
-    /*const MCSymbol *BaseSym = AFI->getJumpTableEntryPCRelSymbol(JTI);
-    const MCExpr *Base = MCSymbolRefExpr::create(BaseSym, OutContext);
-    Value = MCBinaryExpr::createSub(Value, Base, OutContext);*/
     const TargetLowering *TLI = MF->getSubtarget().getTargetLowering();
     const MCExpr *Base = TLI->getPICJumpTableRelocBaseExpr(MF, JTI, OutContext);
     Value = MCBinaryExpr::createSub(Value, Base, OutContext);
-  } else { 
-   std::cout << "Size: " << Size << std::endl;
+  } else {
+    std::cout << "Size: " << Size << std::endl;
   }
- 
+
   // Emit the value with the specified size
   OutStreamer->emitValue(Value, Size);
 }
 
+void RISCVAsmPrinter::LowerJumpTableDestSmall(llvm::MCStreamer &OutStreamer,
+                                              const llvm::MachineInstr &MI) {
 
-/*void RISCVAsmPrinter::LowerJumpTableDestSmall(llvm::MCStreamer &OutStreamer, const llvm::MachineInstr &MI) { 
+  unsigned DestReg = MI.getOperand(0).getReg();
+  unsigned ScratchReg = MI.getOperand(1).getReg();
+  unsigned TableReg = MI.getOperand(2).getReg();
+  unsigned EntryReg = MI.getOperand(3).getReg();
+  int JTIdx = MI.getOperand(4).getIndex();
+  bool IsByteEntry = MI.getOpcode() == RISCV::JumpTableDest8;
+  auto Label =
+      MF->getInfo<RISCVMachineFunctionInfo>()->getJumpTableEntryPCRelSymbol(
+          JTIdx);
 
-    unsigned DestReg = MI.getOperand(0).getReg(); 
-    unsigned ScratchReg = MI.getOperand(1).getReg(); 
-    unsigned TableReg = MI.getOperand(2).getReg(); 
-    unsigned EntryReg = MI.getOperand(3).getReg(); 
+  EmitToStreamer(OutStreamer,
+                 MCInstBuilder(RISCV::AUIPC)
+                     .addReg(DestReg)
+                     .addExpr(RISCVMCExpr::create(
+                         MCSymbolRefExpr::create(
+                             Label, MCSymbolRefExpr::VK_None, MF->getContext()),
+                         RISCVMCExpr::VK_RISCV_HI, MF->getContext())));
 
-    int JTIdx = MI.getOperand(4).getIndex(); 
-
-    bool IsByteEntry = MI.getOpcode() == RISCV::JumpTableDest8; 
-
-    
-    auto Label = MF->getInfo<RISCVMachineFunctionInfo>()->getJumpTableEntryPCRelSymbol(JTIdx); 
-
-    // Emit the auipc instruction with %pcrel_hi 
-    dbgs() << "Emitting AUIPC with Label: " << *Label << "\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::AUIPC) 
-        .addReg(DestReg) 
-        .addExpr(RISCVMCExpr::create( 
-            MCSymbolRefExpr::create(Label, MCSymbolRefExpr::VK_None, MF->getContext()), 
-            RISCVMCExpr::VK_RISCV_HI, MF->getContext()))); 
-
-
-    // Emit the add instruction to add the offset 
-
-    dbgs() << "Emitting add offset and lb\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADD) 
-        .addReg(ScratchReg) 
-        .addReg(TableReg) 
-        .addReg(EntryReg)); // Assuming EntryReg is a register containing the offset. 
-
-
-    // Emit the load instruction based on the opcode 
-    unsigned LdrOpcode; 
-
-    if (MI.getOpcode() == RISCV::JumpTableDest32) { 
-        LdrOpcode = RISCV::LW; 
-    } else if (IsByteEntry) { 
-        LdrOpcode = RISCV::LB; 
-    } else { 
-        LdrOpcode = RISCV::LH; 
-    } 
-
-  
-
-    EmitToStreamer(OutStreamer, MCInstBuilder(LdrOpcode) 
-        .addReg(ScratchReg) 
-        .addReg(ScratchReg) 
-        .addImm(0)); // Load from the address in ScratchReg. 
-  
-
-    // Emit the addi instruction with %lo VK_RISCV_LO 
-    dbgs() << "Emitting ADDI with Label: " << *Label << "\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADDI) 
-        .addReg(DestReg) 
-        .addReg(DestReg) 
-        .addExpr(RISCVMCExpr::create( 
-            MCSymbolRefExpr::create(Label, MCSymbolRefExpr::VK_None, MF->getContext()), 
-            RISCVMCExpr::VK_RISCV_LO, MF->getContext()))); 
-
-  
-
-    if (MI.getOpcode() == RISCV::JumpTableDest32) { 
-        EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::SLLI) 
-            .addReg(ScratchReg) 
-            .addReg(ScratchReg) 
-            .addImm(2)); 
-
-    } 
-
-    // Add the offset to the already materialized base label address. 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADD) 
-        .addReg(DestReg) 
-        .addReg(DestReg) 
-        .addReg(ScratchReg)); 
-
-}*/
-
-/*void RISCVAsmPrinter::LowerJumpTableDestSmall(llvm::MCStreamer &OutStreamer, const llvm::MachineInstr &MI) { 
-
-    unsigned DestReg = MI.getOperand(0).getReg(); 
-    unsigned ScratchReg = MI.getOperand(1).getReg(); 
-    unsigned TableReg = MI.getOperand(2).getReg(); 
-    unsigned EntryReg = MI.getOperand(3).getReg(); 
-
-    int JTIdx = MI.getOperand(4).getIndex(); 
-
-    bool IsByteEntry = MI.getOpcode() == RISCV::JumpTableDest8; 
-
-    
-    auto Label = MF->getInfo<RISCVMachineFunctionInfo>()->getJumpTableEntryPCRelSymbol(JTIdx); 
-
-    // Emit the auipc instruction with %pcrel_hi 
-    dbgs() << "Emitting AUIPC with Label: " << *Label << "\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::AUIPC) 
-        .addReg(DestReg) 
-        .addExpr(RISCVMCExpr::create( 
-            MCSymbolRefExpr::create(Label, MCSymbolRefExpr::VK_None, MF->getContext()), 
-            RISCVMCExpr::VK_RISCV_HI, MF->getContext()))); 
-
-
+  if (MI.getOpcode() == RISCV::JumpTableDest16) {
     // Shift the EntryReg left by 1
-    dbgs() << "Shifting EntryReg left by 1\n";
+    EmitToStreamer(
+        OutStreamer,
+        MCInstBuilder(RISCV::SLLI).addReg(EntryReg).addReg(EntryReg).addImm(1));
+  }
+
+  // Emit the add instruction to add the offset
+  EmitToStreamer(OutStreamer,
+                 MCInstBuilder(RISCV::ADD)
+                     .addReg(ScratchReg)
+                     .addReg(TableReg)
+                     .addReg(EntryReg)); // EntryReg is now shifted left by 1
+
+  // Emit the load instruction based on the opcode
+  unsigned LdrOpcode;
+
+  if (MI.getOpcode() == RISCV::JumpTableDest32) {
+    LdrOpcode = RISCV::LW;
+  } else if (IsByteEntry) {
+    LdrOpcode = RISCV::LB;
+  } else {
+    LdrOpcode = RISCV::LH;
+  }
+
+  EmitToStreamer(OutStreamer,
+                 MCInstBuilder(LdrOpcode)
+                     .addReg(ScratchReg)
+                     .addReg(ScratchReg)
+                     .addImm(0)); // Load from the address in ScratchReg.
+
+  EmitToStreamer(OutStreamer,
+                 MCInstBuilder(RISCV::ADDI)
+                     .addReg(DestReg)
+                     .addReg(DestReg)
+                     .addExpr(RISCVMCExpr::create(
+                         MCSymbolRefExpr::create(
+                             Label, MCSymbolRefExpr::VK_None, MF->getContext()),
+                         RISCVMCExpr::VK_RISCV_LO, MF->getContext())));
+
+  if (MI.getOpcode() == RISCV::JumpTableDest32) {
     EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::SLLI)
-        .addReg(EntryReg)
-        .addReg(EntryReg)
-        .addImm(1));
+                                    .addReg(ScratchReg)
+                                    .addReg(ScratchReg)
+                                    .addImm(2));
+  }
 
-    // Emit the add instruction to add the offset 
-
-    dbgs() << "Emitting add offset and lb\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADD) 
-        .addReg(ScratchReg) 
-        .addReg(TableReg) 
-        .addReg(EntryReg)); // EntryReg is now shifted left by 1
-
-
-    // Emit the load instruction based on the opcode 
-    unsigned LdrOpcode; 
-
-    if (MI.getOpcode() == RISCV::JumpTableDest32) { 
-        LdrOpcode = RISCV::LW; 
-    } else if (IsByteEntry) { 
-        LdrOpcode = RISCV::LB; 
-    } else { 
-        LdrOpcode = RISCV::LH; 
-    } 
-
-  
-
-    EmitToStreamer(OutStreamer, MCInstBuilder(LdrOpcode) 
-        .addReg(ScratchReg) 
-        .addReg(ScratchReg) 
-        .addImm(0)); // Load from the address in ScratchReg. 
-  
-
-    // Emit the addi instruction with %lo VK_RISCV_LO 
-    dbgs() << "Emitting ADDI with Label: " << *Label << "\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADDI) 
-        .addReg(DestReg) 
-        .addReg(DestReg) 
-        .addExpr(RISCVMCExpr::create( 
-            MCSymbolRefExpr::create(Label, MCSymbolRefExpr::VK_None, MF->getContext()), 
-            RISCVMCExpr::VK_RISCV_LO, MF->getContext()))); 
-
-  
-
-    if (MI.getOpcode() == RISCV::JumpTableDest32) { 
-        EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::SLLI) 
-            .addReg(ScratchReg) 
-            .addReg(ScratchReg) 
-            .addImm(2)); 
-
-    } 
-
-    // Add the offset to the already materialized base label address. 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADD) 
-        .addReg(DestReg) 
-        .addReg(DestReg) 
-        .addReg(ScratchReg)); 
-
-}*/
-
-
-void RISCVAsmPrinter::LowerJumpTableDestSmall(llvm::MCStreamer &OutStreamer, const llvm::MachineInstr &MI) { 
-
-    unsigned DestReg = MI.getOperand(0).getReg(); 
-    unsigned ScratchReg = MI.getOperand(1).getReg(); 
-    unsigned TableReg = MI.getOperand(2).getReg(); 
-    unsigned EntryReg = MI.getOperand(3).getReg(); 
-
-    int JTIdx = MI.getOperand(4).getIndex(); 
-
-    bool IsByteEntry = MI.getOpcode() == RISCV::JumpTableDest8; 
-
-    
-    auto Label = MF->getInfo<RISCVMachineFunctionInfo>()->getJumpTableEntryPCRelSymbol(JTIdx); 
-
-    // Emit the auipc instruction with %pcrel_hi 
-    dbgs() << "Emitting AUIPC with Label: " << *Label << "\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::AUIPC) 
-        .addReg(DestReg) 
-        .addExpr(RISCVMCExpr::create( 
-            MCSymbolRefExpr::create(Label, MCSymbolRefExpr::VK_None, MF->getContext()), 
-            RISCVMCExpr::VK_RISCV_HI, MF->getContext()))); 
-
-   
-
-    if (MI.getOpcode() == RISCV::JumpTableDest16) { 
-      // Shift the EntryReg left by 1
-      dbgs() << "Shifting EntryReg left by 1\n";
-      EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::SLLI)
-          .addReg(EntryReg)
-          .addReg(EntryReg)
-          .addImm(1));
-    }
-
-    // Emit the add instruction to add the offset 
-
-    dbgs() << "Emitting add offset and lb\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADD) 
-        .addReg(ScratchReg) 
-        .addReg(TableReg) 
-        .addReg(EntryReg)); // EntryReg is now shifted left by 1
-
-
-    // Emit the load instruction based on the opcode 
-    unsigned LdrOpcode; 
-
-    if (MI.getOpcode() == RISCV::JumpTableDest32) { 
-        LdrOpcode = RISCV::LW; 
-    } else if (IsByteEntry) { 
-        LdrOpcode = RISCV::LB; 
-    } else { 
-        LdrOpcode = RISCV::LH; 
-    } 
-
-
-    EmitToStreamer(OutStreamer, MCInstBuilder(LdrOpcode) 
-        .addReg(ScratchReg) 
-        .addReg(ScratchReg) 
-        .addImm(0)); // Load from the address in ScratchReg. 
-  
-
-    // Emit the addi instruction with %lo VK_RISCV_LO 
-    dbgs() << "Emitting ADDI with Label: " << *Label << "\n"; 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADDI) 
-        .addReg(DestReg) 
-        .addReg(DestReg) 
-        .addExpr(RISCVMCExpr::create( 
-            MCSymbolRefExpr::create(Label, MCSymbolRefExpr::VK_None, MF->getContext()), 
-            RISCVMCExpr::VK_RISCV_LO, MF->getContext()))); 
-
-  
-
-    if (MI.getOpcode() == RISCV::JumpTableDest32) { 
-        EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::SLLI) 
-            .addReg(ScratchReg) 
-            .addReg(ScratchReg) 
-            .addImm(2)); 
-
-    } 
-
-    // Add the offset to the already materialized base label address. 
-    //Provjera 
-    EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADD) 
-        .addReg(DestReg) 
-        .addReg(DestReg) 
-        .addReg(ScratchReg)); 
-
+  // Add the offset to the already materialized base label address.
+  EmitToStreamer(OutStreamer, MCInstBuilder(RISCV::ADD)
+                                  .addReg(DestReg)
+                                  .addReg(DestReg)
+                                  .addReg(ScratchReg));
 }
